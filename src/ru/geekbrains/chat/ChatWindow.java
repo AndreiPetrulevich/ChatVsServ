@@ -117,7 +117,6 @@ public class ChatWindow extends JFrame {
             }
         });
 
-        Object a = new Object();
         setVisible(true);
 
         sendButton.addActionListener((ActionEvent e) -> { sendMessage(); });
