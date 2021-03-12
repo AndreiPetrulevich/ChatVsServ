@@ -3,6 +3,8 @@ package ru.geekbrains.chat;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 public class EchoServer extends Thread {
     private Socket socket;
@@ -11,12 +13,51 @@ public class EchoServer extends Thread {
     private DataOutputStream out;
     private boolean shouldShutdown;
 
-    EchoServer() {
-        try {
-            serverSocket = new ServerSocket(8081);
+    private final int PORT = 8081;
+
+    private List<ClientHandler> clientsList;
+    private AuthenticationService authService;
+
+    public AuthenticationService getAuthService() {
+        return this.authService;
+    }
+
+
+    public EchoServer() {
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            this.authService = new AuthenticationServiceImpl();
+            authService.start();
+
+            while (true) {
+                socket = serverSocket.accept();
+                new ClientHandler(this, socket);
+            }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
+            clientsList = new ArrayList<>();
+        } finally {
+            if (authService != null) {
+                authService.stop();
+            }
         }
+    }
+
+    public synchronized void sendMessageToClients(String message) {
+        for (ClientHandler c : clientsList) {
+            c.sendMessage(message);
+        }
+    }
+
+    public synchronized void subscribe(ClientHandler c) {
+        clientsList.add(c);
+    }
+
+    public synchronized void unSubscribe(ClientHandler c) {
+        clientsList.remove(c);
+    }
+
+    public synchronized boolean isNickBusy (String nick) {
+        return clientsList.stream().anyMatch(a -> a.getName().equals(nick));
     }
 
     public void listen() {

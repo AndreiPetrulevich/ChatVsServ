@@ -1,5 +1,6 @@
 package ru.geekbrains.chat;
 
+import javax.naming.AuthenticationException;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -18,6 +19,7 @@ public class ChatWindow extends JFrame {
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
+
 
     public ChatWindow() {
         try {
