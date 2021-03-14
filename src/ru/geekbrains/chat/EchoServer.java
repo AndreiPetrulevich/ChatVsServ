@@ -14,7 +14,7 @@ public class EchoServer extends Thread {
 
     private final int PORT = 8081;
 
-    private List<ClientHandler> clientsList;
+    private List<ClientHandler> clientsList = new ArrayList<>();
     private AuthenticationService authService;
 
     public AuthenticationService getAuthService() {
@@ -30,7 +30,6 @@ public class EchoServer extends Thread {
             while (true) {
                 socket = serverSocket.accept();
                 new ClientHandler(this, socket);
-                clientsList = new ArrayList<>();
             }
         } catch (IOException e) {
             System.out.println(e.getMessage());
@@ -55,7 +54,7 @@ public class EchoServer extends Thread {
         clientsList.add(c);
     }
 
-    public synchronized void unSubscribe(ClientHandler c) {
+    public synchronized void unsubscribe(ClientHandler c) {
         clientsList.remove(c);
     }
 
