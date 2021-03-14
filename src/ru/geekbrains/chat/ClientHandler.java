@@ -43,15 +43,15 @@ public class ClientHandler {
                 String nick = echoServer
                         .getAuthService()
                         .getNickByLoginAndPassword(arr[1], arr[2]);
-                if (!nick.isEmpty()) {
+                if (nick != null && !nick.isEmpty()) {
                     if (!echoServer.isNickBusy(nick)) {
                         sendMessage("/authok " + nick);
                         name = nick;
-                        echoServer.sendMessageToClients(nick + "Joined to chat");
+                        echoServer.sendMessageToClients(nick + " Joined to chat");
                         echoServer.subscribe(this);
                         return;
                     } else {
-                        sendMessage("This " + name + " is busy!");
+                        sendMessage("This " + nick + " is busy!");
                     }
                 } else {
                     sendMessage("Wrong login/password");
@@ -74,12 +74,23 @@ public class ClientHandler {
     private void readMessage() throws IOException {
         while (true) {
             String messageFromClient = dis.readUTF();
-            if (messageFromClient.equals("/q")) {
-                sendMessage(messageFromClient);
-                break;
+            if (messageFromClient.startsWith("/")) {
+                if (messageFromClient.startsWith("/w")) {
+                    String [] array = messageFromClient.trim().split("\\s",3);
+                    echoServer.sendPrivateMessage(this, array[1], array[2]);
+                    continue;
+                }
+                if (messageFromClient.startsWith("/ou")) {
+                    echoServer.showOnlineClientsList(this);
+                    continue;
+                }
+
+                if (messageFromClient.equals("/q")) {
+                    sendMessage(messageFromClient);
+                    break;
+                }
             }
             echoServer.sendMessageToClients(name + ": " + messageFromClient);
-
         }
     }
 
@@ -88,4 +99,8 @@ public class ClientHandler {
         echoServer.sendMessageToClients(name + " leave the chat.");
     }
 
+    @Override
+    public String toString() {
+        return name;
+    }
 }

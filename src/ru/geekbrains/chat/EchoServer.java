@@ -41,6 +41,10 @@ public class EchoServer extends Thread {
         }
     }
 
+    public static void main(String[] args) {
+        new EchoServer();
+    }
+
     public synchronized void sendMessageToClients(String message) {
         for (ClientHandler c : clientsList) {
             c.sendMessage(message);
@@ -59,7 +63,18 @@ public class EchoServer extends Thread {
         return clientsList.stream().anyMatch(a -> a.getName().equals(nick));
     }
 
-    public static void main(String[] args) {
-        new EchoServer();
+    public synchronized void sendPrivateMessage(ClientHandler clientHandler, String toNick, String message) {
+        for (ClientHandler u : clientsList) {
+            if (u.getName().equalsIgnoreCase(toNick)) {
+                u.sendMessage(clientHandler.getName() + " send private message to: " + message);
+                clientHandler.sendMessage("You send to " + toNick + " private message: " + message);
+                return;
+            }
+        }
+        clientHandler.sendMessage(toNick + ": offline.");
+    }
+
+    public synchronized void showOnlineClientsList(ClientHandler clientHandler) {
+        clientHandler.sendMessage("Online: " + clientsList.toString());
     }
 }
