@@ -1,5 +1,6 @@
 package ru.geekbrains.chat;
 
+import javax.naming.AuthenticationException;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -18,6 +19,7 @@ public class ChatWindow extends JFrame {
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
+    private boolean setAuthorized;
 
     public ChatWindow() {
         try {
@@ -36,18 +38,34 @@ public class ChatWindow extends JFrame {
             }
         });
     }
+    public boolean getAuthorized() {
+        return setAuthorized;
+    }
 
+    public void setAuthorized(boolean setAuthorized) {
+        this.setAuthorized = setAuthorized;
+    }
     public void openConnection() throws IOException {
         socket = new Socket(SERVER_ADDR, SERVER_PORT);
         in = new DataInputStream(socket.getInputStream());
         out = new DataOutputStream(socket.getOutputStream());
-        new Thread(new Runnable() {
+        setAuthorized(false);
+        Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     while (true) {
                         String strFromServer = in.readUTF();
-                        if(strFromServer.equalsIgnoreCase("/q")) {
+                        if (strFromServer.startsWith("/authok")) {
+                            setAuthorized(true);
+                            chatArea.append(strFromServer + '\n');
+                            break;
+                        }
+                        chatArea.append(strFromServer + '\n');
+                    }
+                    while (true) {
+                        String strFromServer = in.readUTF();
+                        if(strFromServer.equals("/q")) {
                             break;
                         }
                         chatArea.append(strFromServer);
@@ -57,7 +75,9 @@ public class ChatWindow extends JFrame {
                     e.printStackTrace();
                 }
             }
-        }).start();
+        });
+        thread.setDaemon(true);
+        thread.start();
     }
 
     public void closeConnection() {
@@ -146,7 +166,8 @@ public class ChatWindow extends JFrame {
     private void sendMessage() {
         if (!inputField.getText().trim().isEmpty()) {
             try {
-                out.writeUTF(inputField.getText());
+                String messageToServer = inputField.getText();
+                out.writeUTF(messageToServer);
                 inputField.setText("");
             } catch (IOException e) {
                 e.printStackTrace();
