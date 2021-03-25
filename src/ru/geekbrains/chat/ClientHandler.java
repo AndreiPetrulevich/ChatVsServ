@@ -122,9 +122,11 @@ public class ClientHandler {
                     if (id > 0 && array.length > 1) {
                         String newNick = echoServer.getAuthService().changeNickName(id, array[1]);
                         if (newNick != null) {
+                            echoServer.sendMessageToClients(name + " change nickname to: " + newNick);
                             name = newNick;
                         }
                     }
+                    continue;
                 }
 
                 if (messageFromClient.equals("/q")) {

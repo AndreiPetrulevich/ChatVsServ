@@ -66,7 +66,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             PreparedStatement statement = connection.prepareStatement(changeNickQuery);
             statement.setString(1, newNick);
             statement.setInt(2, id);
-            if(statement.execute()) {
+            statement.execute();
+            if(statement.getUpdateCount() > 0) {
                 return newNick;
             }
         } catch (SQLException e) {
