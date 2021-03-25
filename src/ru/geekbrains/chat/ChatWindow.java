@@ -19,7 +19,7 @@ public class ChatWindow extends JFrame {
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
-    private boolean setAuthorized;
+    private boolean isAuthorized;
 
     public ChatWindow() {
         try {
@@ -38,13 +38,22 @@ public class ChatWindow extends JFrame {
             }
         });
     }
-    public boolean getAuthorized() {
-        return setAuthorized;
+
+    public void setAuthorized(boolean authorized) {
+        this.isAuthorized = authorized;
+        if (!authorized) {
+            setNick(null);
+        }
     }
 
-    public void setAuthorized(boolean setAuthorized) {
-        this.setAuthorized = setAuthorized;
+    public void setNick(String nick) {
+        if (nick == null) {
+            this.setTitle("Tovarisch polkovnik");
+        } else {
+            this.setTitle("Tovarisch polkovnik: " + nick);
+        }
     }
+
     public void openConnection() throws IOException {
         socket = new Socket(SERVER_ADDR, SERVER_PORT);
         in = new DataInputStream(socket.getInputStream());
@@ -58,6 +67,7 @@ public class ChatWindow extends JFrame {
                         String strFromServer = in.readUTF();
                         if (strFromServer.startsWith("/authok")) {
                             setAuthorized(true);
+                            setNick(strFromServer.split(" ")[1]);
                             chatArea.append(strFromServer + '\n');
                             break;
                         }

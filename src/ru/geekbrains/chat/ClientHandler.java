@@ -11,6 +11,7 @@ public class ClientHandler {
         AUTHENTICATED
     }
     private String name;
+    private Integer id = -1;
     private ConnectionType connectionType;
     private EchoServer echoServer;
     private Socket socket;
@@ -37,7 +38,7 @@ public class ClientHandler {
                         Thread.sleep(1000);
                     }
                     if (this.connectionType == ConnectionType.ANONYMOUS) {
-                        System.out.println("Dropping anonumous user due to authentication timeout");
+                        System.out.println("Dropping anonymous user due to authentication timeout");
                         this.closeConnection();
                     }
                 } catch (InterruptedException e) {
@@ -67,16 +68,19 @@ public class ClientHandler {
             String authStr = dis.readUTF();
             if (authStr.startsWith("/auth")) {
                 String [] arr = authStr.split("\\s");
-                String nick = echoServer
+
+                User user = echoServer
                         .getAuthService()
-                        .getNickByLoginAndPassword(arr[1], arr[2]);
-                if (nick != null && !nick.isEmpty()) {
+                        .authenticate(arr[1], arr[2]);
+                if (user != null && !user.getNick().isEmpty()) {
+                    String nick = user.getNick();
                     if (!echoServer.isNickBusy(nick)) {
                         sendMessage("/authok " + nick);
                         name = nick;
+                        id = user.getId();
                         connectionType = ConnectionType.AUTHENTICATED;
                         echoServer.sendMessageToClients(nick + " Joined to chat");
-                        echoServer.subscribe(this);
+
                         return;
                     } else {
                         sendMessage("This " + nick + " is busy!");
@@ -111,6 +115,16 @@ public class ClientHandler {
                 if (messageFromClient.startsWith("/ou")) {
                     echoServer.showOnlineClientsList(this);
                     continue;
+                }
+
+                if (messageFromClient.startsWith("/nick")) {
+                    String [] array = messageFromClient.trim().split("\\s",2);
+                    if (id > 0 && array.length > 1) {
+                        String newNick = echoServer.getAuthService().changeNickName(id, array[1]);
+                        if (newNick != null) {
+                            name = newNick;
+                        }
+                    }
                 }
 
                 if (messageFromClient.equals("/q")) {
