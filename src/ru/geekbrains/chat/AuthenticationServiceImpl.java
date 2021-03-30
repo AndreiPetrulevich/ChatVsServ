@@ -1,17 +1,26 @@
 package ru.geekbrains.chat;
 
-import java.util.ArrayList;
-import java.util.List;
+import ru.geekbrains.chat.connection.SQLiteConnection;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
+    static final String getNickQuery = "SELECT * FROM users WHERE login = ? AND password = ?";
+    static final String changeNickQuery = "UPDATE users SET nick = ? WHERE id = ?";
 
-    private List<User> usersList;
+    static Connection connection;
 
-    public AuthenticationServiceImpl() {
-        usersList = new ArrayList<>();
-        usersList.add(new User("O", "O","Onufrii"));
-        usersList.add(new User("A", "A","Afonia"));
-        usersList.add(new User("K", "K","Kondrat"));
+    static {
+        try {
+            connection = SQLiteConnection.getSQLiteConnection("chat.sqlite");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -25,24 +34,45 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public String getNickByLoginAndPassword(String login, String password) {
-        for (User u : usersList) {
-            if (u.login.equals(login) && u.password.equals(password)) {
-                return u.nick;
-            }
+    public User authenticate(String login, String password) {
+        if (login == null || password == null) {
+            return null;
         }
+        login = login.trim();
+        password = password.trim();
+
+        try {
+            PreparedStatement statement = connection.prepareStatement(getNickQuery);
+            statement.setString(1, login);
+            statement.setString(2, password);
+            ResultSet resultSet = statement.executeQuery();
+
+            User result = new User(
+                resultSet.getInt("id"),
+                resultSet.getString("login"),
+                resultSet.getString("nick")
+            );
+            return result;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
         return null;
     }
 
-    private class User {
-        private String login;
-        private String password;
-        private String nick;
-
-        public User(String login, String password, String nick) {
-            this.login = login;
-            this.password = password;
-            this.nick = nick;
+    @Override
+    public String changeNickName(int id, String newNick) {
+        try {
+            PreparedStatement statement = connection.prepareStatement(changeNickQuery);
+            statement.setString(1, newNick);
+            statement.setInt(2, id);
+            statement.execute();
+            if(statement.getUpdateCount() > 0) {
+                return newNick;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        return null;
     }
 }
