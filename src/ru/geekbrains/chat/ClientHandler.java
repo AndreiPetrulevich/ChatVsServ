@@ -1,9 +1,8 @@
 package ru.geekbrains.chat;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
+import java.util.Arrays;
 
 public class ClientHandler {
     public enum ConnectionType {
@@ -75,7 +74,12 @@ public class ClientHandler {
                 if (user != null && !user.getNick().isEmpty()) {
                     String nick = user.getNick();
                     if (!echoServer.isNickBusy(nick)) {
-                        sendMessage("/authok " + nick);
+                        String authMessage = String.join(" ", Arrays.asList(
+                                "/authok",
+                                nick,
+                                Integer.toString(user.getId())
+                        ));
+                        sendMessage(authMessage);
                         name = nick;
                         id = user.getId();
                         connectionType = ConnectionType.AUTHENTICATED;

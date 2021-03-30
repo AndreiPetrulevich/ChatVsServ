@@ -1,6 +1,5 @@
 package ru.geekbrains.chat;
 
-import javax.naming.AuthenticationException;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -19,7 +18,7 @@ public class ChatWindow extends JFrame {
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
-    private boolean isAuthorized;
+    private HistoryLogger logger;
 
     public ChatWindow() {
         try {
@@ -39,10 +38,14 @@ public class ChatWindow extends JFrame {
         });
     }
 
-    public void setAuthorized(boolean authorized) {
-        this.isAuthorized = authorized;
-        if (!authorized) {
+    public void setAuthorized(int userId) {
+        if (userId == 0) {
             setNick(null);
+        } else {
+            logger = new HistoryLogger(userId);
+            for (String message: logger.getLastMessages()) {
+                chatArea.append(message);
+            }
         }
     }
 
@@ -58,7 +61,7 @@ public class ChatWindow extends JFrame {
         socket = new Socket(SERVER_ADDR, SERVER_PORT);
         in = new DataInputStream(socket.getInputStream());
         out = new DataOutputStream(socket.getOutputStream());
-        setAuthorized(false);
+        setAuthorized(0);
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -66,8 +69,10 @@ public class ChatWindow extends JFrame {
                     while (true) {
                         String strFromServer = in.readUTF();
                         if (strFromServer.startsWith("/authok")) {
-                            setAuthorized(true);
-                            setNick(strFromServer.split(" ")[1]);
+                            String[] values = strFromServer.split(" ");
+                            assert(values.length == 3);
+                            setAuthorized(Integer.parseInt(values[2]));
+                            setNick(values[1]);
                             chatArea.append(strFromServer + '\n');
                             break;
                         }
@@ -78,8 +83,8 @@ public class ChatWindow extends JFrame {
                         if(strFromServer.equals("/q")) {
                             break;
                         }
-                        chatArea.append(strFromServer);
-                        chatArea.append("\n");
+                        logMessage(strFromServer + '\n');
+                        chatArea.append(strFromServer + '\n');
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -93,20 +98,8 @@ public class ChatWindow extends JFrame {
     public void closeConnection() {
         try {
             out.flush();
-        } catch (IOException ignored) {
-            ignored.printStackTrace();
-        }
-        try {
             in.close();
-        } catch (IOException ignored) {
-            ignored.printStackTrace();
-        }
-        try {
             out.close();
-        } catch (IOException ignored) {
-            ignored.printStackTrace();
-        }
-        try {
             socket.close();
         } catch (IOException ignored) {
             ignored.printStackTrace();
@@ -178,11 +171,18 @@ public class ChatWindow extends JFrame {
             try {
                 String messageToServer = inputField.getText();
                 out.writeUTF(messageToServer);
+                logMessage(messageToServer);
                 inputField.setText("");
             } catch (IOException e) {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(null, "Error sending message");
             }
+        }
+    }
+
+    private void logMessage(String message) {
+        if (logger != null) {
+            logger.logMessage(message);
         }
     }
 
